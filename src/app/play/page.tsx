@@ -1978,6 +1978,59 @@ function PlayPageClient() {
                 <div className='mt-3 px-2 lg:flex-shrink-0 flex justify-end'>
                   <div className='bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-lg p-2 border border-gray-200/50 dark:border-gray-700/50 w-auto'>
                     <div className='flex flex-wrap gap-1.5 justify-end'>
+                      {/* 下载按钮 */}
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          const isM3u8 = videoUrl.toLowerCase().includes('.m3u8') || videoUrl.toLowerCase().includes('/m3u8/');
+                          
+                          if (isM3u8) {
+                            // M3U8格式 - 复制链接并提示
+                            navigator.clipboard.writeText(videoUrl).then(() => {
+                              if (artPlayerRef.current) {
+                                artPlayerRef.current.notice.show = '链接已复制！请使用 FFmpeg、N_m3u8DL-CLI 或 Downie 等工具下载';
+                              }
+                            }).catch(() => {
+                              if (artPlayerRef.current) {
+                                artPlayerRef.current.notice.show = '复制失败，请手动复制链接';
+                              }
+                            });
+                          } else {
+                            // 普通视频格式 - 直接下载
+                            const a = document.createElement('a');
+                            a.href = videoUrl;
+                            a.download = `${videoTitle}_第${currentEpisodeIndex + 1}集.mp4`;
+                            a.target = '_blank';
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            
+                            if (artPlayerRef.current) {
+                              artPlayerRef.current.notice.show = '开始下载...';
+                            }
+                          }
+                        }}
+                        className='group relative flex items-center gap-1 px-2 py-1.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-xs font-medium rounded-md transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer overflow-hidden border border-green-400'
+                        title='下载视频'
+                      >
+                        <svg 
+                          className='w-4 h-4 flex-shrink-0 text-white' 
+                          fill='none' 
+                          stroke='currentColor' 
+                          viewBox='0 0 24 24'
+                        >
+                          <path 
+                            strokeLinecap='round' 
+                            strokeLinejoin='round' 
+                            strokeWidth='2' 
+                            d='M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4'
+                          />
+                        </svg>
+                        <span className='max-w-0 group-hover:max-w-[100px] overflow-hidden whitespace-nowrap transition-all duration-200 ease-in-out text-white'>
+                          下载
+                        </span>
+                      </button>
+
                       {/* PotPlayer */}
                       <button
                         onClick={(e) => {
