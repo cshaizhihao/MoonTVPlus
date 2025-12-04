@@ -1,7 +1,7 @@
 'use client';
 
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { getEpisodes, searchAnime } from '@/lib/danmaku/api';
 import type {
@@ -30,6 +30,7 @@ export default function DanmakuPanel({
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingEpisodes, setIsLoadingEpisodes] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const initializedRef = useRef(false); // 标记是否已初始化过
 
   // 搜索弹幕
   const handleSearch = useCallback(async (keyword: string) => {
@@ -116,12 +117,13 @@ export default function DanmakuPanel({
     [currentSelection]
   );
 
-  // 当视频标题变化时，更新搜索关键词
+  // 当视频标题首次加载时，初始化搜索关键词（仅执行一次）
   useEffect(() => {
-    if (videoTitle && !searchKeyword) {
+    if (videoTitle && !initializedRef.current) {
       setSearchKeyword(videoTitle);
+      initializedRef.current = true; // 标记已初始化，防止后续自动填充
     }
-  }, [videoTitle, searchKeyword]);
+  }, [videoTitle]);
 
   return (
     <div className='flex h-full flex-col overflow-hidden'>
@@ -138,6 +140,12 @@ export default function DanmakuPanel({
               }
             }}
             placeholder='输入动漫名称搜索弹幕...'
+            autoComplete='off'
+            autoCorrect='off'
+            autoCapitalize='off'
+            spellCheck='false'
+            data-form-type='other'
+            data-lpignore='true'
             className='flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm
                      transition-colors focus:border-green-500 focus:outline-none
                      focus:ring-2 focus:ring-green-500/20

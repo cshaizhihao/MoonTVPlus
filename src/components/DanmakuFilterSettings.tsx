@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Plus, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
 import { DanmakuFilterConfig, DanmakuFilterRule } from '@/lib/types';
 import { getDanmakuFilterConfig, saveDanmakuFilterConfig } from '@/lib/db.client';
@@ -26,6 +26,8 @@ export default function DanmakuFilterSettings({
   const [saving, setSaving] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [inputKey, setInputKey] = useState(0); // 用于强制重新渲染输入框
+  const inputRef = useRef<HTMLInputElement>(null); // 用于直接操作输入框 DOM
 
   // 控制动画状态
   useEffect(() => {
@@ -176,7 +178,17 @@ export default function DanmakuFilterSettings({
       rules: [...prev.rules, newRule],
     }));
 
+    // 清空输入框并强制重新渲染
     setNewKeyword('');
+
+    // 使用 setTimeout 确保在状态更新后操作 DOM
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.value = ''; // 直接清空 DOM 值
+        inputRef.current.blur(); // 失去焦点，阻止自动填充
+      }
+      setInputKey(prev => prev + 1); // 强制重新渲染输入框
+    }, 0);
   };
 
   // 删除规则
@@ -279,11 +291,19 @@ export default function DanmakuFilterSettings({
             </h3>
             <div className="space-y-3">
               <input
+                key={inputKey}
+                ref={inputRef}
                 type="text"
                 value={newKeyword}
                 onChange={(e) => setNewKeyword(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleAddRule()}
                 placeholder="输入要屏蔽的关键字"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                data-form-type="other"
+                data-lpignore="true"
                 className="w-full px-4 py-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg border border-gray-200 dark:border-gray-600 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all duration-200"
               />
               <div className="flex gap-2">
