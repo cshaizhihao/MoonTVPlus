@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     const config = await getConfig();
     const openListConfig = config.OpenListConfig;
 
-    if (!openListConfig || !openListConfig.URL || !openListConfig.Token) {
+    if (!openListConfig || !openListConfig.URL || !openListConfig.Username || !openListConfig.Password) {
       return NextResponse.json(
         { error: 'OpenList 未配置' },
         { status: 400 }
@@ -66,7 +66,6 @@ export async function POST(request: NextRequest) {
     performScan(
       taskId,
       openListConfig.URL,
-      openListConfig.Token,
       openListConfig.RootPath || '/',
       tmdbApiKey,
       tmdbProxy,
@@ -97,20 +96,18 @@ export async function POST(request: NextRequest) {
 async function performScan(
   taskId: string,
   url: string,
-  token: string,
   rootPath: string,
   tmdbApiKey: string,
   tmdbProxy?: string,
   username?: string,
   password?: string
 ): Promise<void> {
-  const client = new OpenListClient(url, token, username, password);
+  const client = new OpenListClient(url, username!, password!);
 
   console.log('[OpenList Refresh] 开始扫描:', {
     taskId,
     rootPath,
     url,
-    hasToken: !!token,
   });
 
   // 立即更新进度，确保任务可被查询

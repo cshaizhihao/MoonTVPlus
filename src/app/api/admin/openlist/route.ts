@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { action, URL, Token, Username, Password, RootPath } = body;
+    const { action, URL, Username, Password, RootPath } = body;
 
     const authInfo = getAuthInfoFromCookie(request);
     if (!authInfo || !authInfo.username) {
@@ -49,40 +49,30 @@ export async function POST(request: NextRequest) {
 
     if (action === 'save') {
       // 保存配置
-      if (!URL) {
-        return NextResponse.json({ error: '缺少URL参数' }, { status: 400 });
-      }
-
-      let finalToken = Token;
-
-      // 如果没有Token但有账号密码，尝试登录获取Token
-      if (!finalToken && Username && Password) {
-        try {
-          console.log('[OpenList Config] 使用账号密码登录获取Token');
-          finalToken = await OpenListClient.login(URL, Username, Password);
-          console.log('[OpenList Config] 登录成功，获取到Token');
-        } catch (error) {
-          console.error('[OpenList Config] 登录失败:', error);
-          return NextResponse.json(
-            { error: '使用账号密码登录失败: ' + (error as Error).message },
-            { status: 400 }
-          );
-        }
-      }
-
-      // 检查是否有Token
-      if (!finalToken) {
+      if (!URL || !Username || !Password) {
         return NextResponse.json(
-          { error: '请提供Token或账号密码' },
+          { error: '请提供 URL、账号和密码' },
+          { status: 400 }
+        );
+      }
+
+      // 验证账号密码是否正确
+      try {
+        console.log('[OpenList Config] 验证账号密码');
+        await OpenListClient.login(URL, Username, Password);
+        console.log('[OpenList Config] 账号密码验证成功');
+      } catch (error) {
+        console.error('[OpenList Config] 账号密码验证失败:', error);
+        return NextResponse.json(
+          { error: '账号密码验证失败: ' + (error as Error).message },
           { status: 400 }
         );
       }
 
       adminConfig.OpenListConfig = {
         URL,
-        Token: finalToken,
-        Username: Username || undefined,
-        Password: Password || undefined,
+        Username,
+        Password,
         RootPath: RootPath || '/',
         LastRefreshTime: adminConfig.OpenListConfig?.LastRefreshTime,
         ResourceCount: adminConfig.OpenListConfig?.ResourceCount,

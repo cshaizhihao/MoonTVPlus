@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+// Token 内存缓存
+const tokenCache = new Map<string, { token: string; expiresAt: number }>();
+
 export interface OpenListFile {
   name: string;
   size: number;
@@ -30,11 +33,12 @@ export interface OpenListGetResponse {
 }
 
 export class OpenListClient {
+  private token: string = '';
+
   constructor(
     private baseURL: string,
-    private token: string,
-    private username?: string,
-    private password?: string
+    private username: string,
+    private password: string
   ) {}
 
   /**
@@ -69,60 +73,81 @@ export class OpenListClient {
   }
 
   /**
-   * 刷新Token（如果配置了账号密码）
+   * 获取缓存的 Token 或重新登录
    */
-  private async refreshToken(): Promise<boolean> {
-    if (!this.username || !this.password) {
-      return false;
+  private async getToken(): Promise<string> {
+    const cacheKey = `${this.baseURL}:${this.username}`;
+    const cached = tokenCache.get(cacheKey);
+
+    // 如果有缓存且未过期，直接返回
+    if (cached && cached.expiresAt > Date.now()) {
+      this.token = cached.token;
+      return this.token;
     }
 
-    try {
-      console.log('[OpenListClient] Token可能失效，尝试使用账号密码重新登录');
-      this.token = await OpenListClient.login(
-        this.baseURL,
-        this.username,
-        this.password
-      );
-      console.log('[OpenListClient] Token刷新成功');
-      return true;
-    } catch (error) {
-      console.error('[OpenListClient] Token刷新失败:', error);
-      return false;
-    }
+    // 否则重新登录
+    console.log('[OpenListClient] Token 不存在或已过期，重新登录');
+    this.token = await OpenListClient.login(
+      this.baseURL,
+      this.username,
+      this.password
+    );
+
+    // 缓存 Token，设置 1 小时过期
+    tokenCache.set(cacheKey, {
+      token: this.token,
+      expiresAt: Date.now() + 60 * 60 * 1000,
+    });
+
+    console.log('[OpenListClient] 登录成功，Token 已缓存');
+    return this.token;
   }
 
   /**
-   * 执行请求，如果401则尝试刷新Token后重试
+   * 清除 Token 缓存（当 Token 失效时调用）
+   */
+  private clearTokenCache(): void {
+    const cacheKey = `${this.baseURL}:${this.username}`;
+    tokenCache.delete(cacheKey);
+    console.log('[OpenListClient] Token 缓存已清除');
+  }
+
+  /**
+   * 执行请求，如果401则清除缓存并重新登录后重试
    */
   private async fetchWithRetry(
     url: string,
     options: RequestInit,
     retried = false
   ): Promise<Response> {
-    const response = await fetch(url, options);
+    // 获取 Token
+    const token = await this.getToken();
 
-    // 如果是401且未重试过且有账号密码，尝试刷新Token后重试
-    if (response.status === 401 && !retried && this.username && this.password) {
-      const refreshed = await this.refreshToken();
-      if (refreshed) {
-        // 更新请求头中的Token
-        const newOptions = {
-          ...options,
-          headers: {
-            ...options.headers,
-            Authorization: this.token,
-          },
-        };
-        return this.fetchWithRetry(url, newOptions, true);
-      }
+    // 更新请求头中的 Token
+    const requestOptions = {
+      ...options,
+      headers: {
+        ...options.headers,
+        Authorization: token,
+      },
+    };
+
+    const response = await fetch(url, requestOptions);
+
+    // 如果是401且未重试过，清除缓存并重新登录后重试
+    if (response.status === 401 && !retried) {
+      console.log('[OpenListClient] 收到 401，清除 Token 缓存并重试');
+      this.clearTokenCache();
+      return this.fetchWithRetry(url, options, true);
     }
 
     return response;
   }
 
-  private getHeaders() {
+  private async getHeaders() {
+    const token = await this.getToken();
     return {
-      Authorization: this.token, // 不带 bearer
+      Authorization: token, // 不带 bearer
       'Content-Type': 'application/json',
     };
   }
@@ -135,7 +160,7 @@ export class OpenListClient {
   ): Promise<OpenListListResponse> {
     const response = await this.fetchWithRetry(`${this.baseURL}/api/fs/list`, {
       method: 'POST',
-      headers: this.getHeaders(),
+      headers: await this.getHeaders(),
       body: JSON.stringify({
         path,
         password: '',
@@ -156,7 +181,7 @@ export class OpenListClient {
   async getFile(path: string): Promise<OpenListGetResponse> {
     const response = await this.fetchWithRetry(`${this.baseURL}/api/fs/get`, {
       method: 'POST',
-      headers: this.getHeaders(),
+      headers: await this.getHeaders(),
       body: JSON.stringify({
         path,
         password: '',
@@ -172,10 +197,11 @@ export class OpenListClient {
 
   // 上传文件
   async uploadFile(path: string, content: string): Promise<void> {
+    const token = await this.getToken();
     const response = await this.fetchWithRetry(`${this.baseURL}/api/fs/put`, {
       method: 'PUT',
       headers: {
-        Authorization: this.token,
+        Authorization: token,
         'Content-Type': 'text/plain; charset=utf-8',
         'File-Path': encodeURIComponent(path),
         'As-Task': 'false',
@@ -198,7 +224,7 @@ export class OpenListClient {
     try {
       const response = await this.fetchWithRetry(`${this.baseURL}/api/fs/list`, {
         method: 'POST',
-        headers: this.getHeaders(),
+        headers: await this.getHeaders(),
         body: JSON.stringify({
           path,
           password: '',
@@ -223,7 +249,7 @@ export class OpenListClient {
 
     const response = await this.fetchWithRetry(`${this.baseURL}/api/fs/remove`, {
       method: 'POST',
-      headers: this.getHeaders(),
+      headers: await this.getHeaders(),
       body: JSON.stringify({
         names: [fileName],
         dir: dir,

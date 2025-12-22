@@ -264,7 +264,7 @@ async function handleOpenListProxy(request: NextRequest) {
   const config = await getConfig();
   const openListConfig = config.OpenListConfig;
 
-  if (!openListConfig || !openListConfig.URL || !openListConfig.Token) {
+  if (!openListConfig || !openListConfig.URL || !openListConfig.Username || !openListConfig.Password) {
     return NextResponse.json(
       { code: 0, msg: 'OpenList 未配置', list: [] },
       { status: 200 }
@@ -272,7 +272,11 @@ async function handleOpenListProxy(request: NextRequest) {
   }
 
   const rootPath = openListConfig.RootPath || '/';
-  const client = new OpenListClient(openListConfig.URL, openListConfig.Token);
+  const client = new OpenListClient(
+    openListConfig.URL,
+    openListConfig.Username,
+    openListConfig.Password
+  );
 
   // 读取 metainfo (从数据库或缓存)
   let metaInfo: MetaInfo | null = getCachedMetaInfo(rootPath);

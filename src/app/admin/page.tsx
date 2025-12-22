@@ -2541,7 +2541,6 @@ const OpenListConfigComponent = ({
   const { alertModal, showAlert, hideAlert } = useAlertModal();
   const { isLoading, withLoading } = useLoadingState();
   const [url, setUrl] = useState('');
-  const [token, setToken] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rootPath, setRootPath] = useState('/');
@@ -2558,7 +2557,6 @@ const OpenListConfigComponent = ({
   useEffect(() => {
     if (config?.OpenListConfig) {
       setUrl(config.OpenListConfig.URL || '');
-      setToken(config.OpenListConfig.Token || '');
       setUsername(config.OpenListConfig.Username || '');
       setPassword(config.OpenListConfig.Password || '');
       setRootPath(config.OpenListConfig.RootPath || '/');
@@ -2566,7 +2564,7 @@ const OpenListConfigComponent = ({
   }, [config]);
 
   useEffect(() => {
-    if (config?.OpenListConfig?.URL && config?.OpenListConfig?.Token) {
+    if (config?.OpenListConfig?.URL && config?.OpenListConfig?.Username && config?.OpenListConfig?.Password) {
       fetchVideos();
     }
   }, [config]);
@@ -2595,7 +2593,6 @@ const OpenListConfigComponent = ({
           body: JSON.stringify({
             action: 'save',
             URL: url,
-            Token: token,
             Username: username,
             Password: password,
             RootPath: rootPath,
@@ -2731,26 +2728,10 @@ const OpenListConfigComponent = ({
           />
         </div>
 
-        <div>
-          <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
-            OpenList Token
-          </label>
-          <input
-            type='password'
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
-            placeholder='your-token'
-            className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-          />
-          <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
-            可以直接填写Token，或使用下方账号密码登录获取
-          </p>
-        </div>
-
         <div className='grid grid-cols-2 gap-4'>
           <div>
             <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
-              账号（可选）
+              账号
             </label>
             <input
               type='text'
@@ -2762,7 +2743,7 @@ const OpenListConfigComponent = ({
           </div>
           <div>
             <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
-              密码（可选）
+              密码
             </label>
             <input
               type='password'
@@ -2802,7 +2783,7 @@ const OpenListConfigComponent = ({
       </div>
 
       {/* 视频列表区域 */}
-      {config?.OpenListConfig?.URL && config?.OpenListConfig?.Token && (
+      {config?.OpenListConfig?.URL && config?.OpenListConfig?.Username && config?.OpenListConfig?.Password && (
         <div className='space-y-4'>
           <div className='flex items-center justify-between'>
             <div>

@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     const config = await getConfig();
     const openListConfig = config.OpenListConfig;
 
-    if (!openListConfig || !openListConfig.URL || !openListConfig.Token) {
+    if (!openListConfig || !openListConfig.URL || !openListConfig.Username || !openListConfig.Password) {
       return NextResponse.json({ error: 'OpenList 未配置' }, { status: 400 });
     }
 
@@ -38,7 +38,6 @@ export async function POST(request: NextRequest) {
     const folderPath = `${rootPath}${rootPath.endsWith('/') ? '' : '/'}${folder}`;
     const client = new OpenListClient(
       openListConfig.URL,
-      openListConfig.Token,
       openListConfig.Username,
       openListConfig.Password
     );

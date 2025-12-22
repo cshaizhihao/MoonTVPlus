@@ -90,7 +90,9 @@ export default async function RootLayout({
     tmdbApiKey = config.SiteConfig.TMDBApiKey || '';
     // 检查是否配置了 OpenList
     openListEnabled = !!(
-      config.OpenListConfig?.URL && config.OpenListConfig?.Token
+      config.OpenListConfig?.URL &&
+      config.OpenListConfig?.Username &&
+      config.OpenListConfig?.Password
     );
   }
 

@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
   const apiSites = await getAvailableApiSites(authInfo.username);
 
   // 检查是否配置了 OpenList
-  const hasOpenList = !!(config.OpenListConfig?.URL && config.OpenListConfig?.Token);
+  const hasOpenList = !!(config.OpenListConfig?.URL && config.OpenListConfig?.Username && config.OpenListConfig?.Password);
 
   // 共享状态
   let streamClosed = false;
