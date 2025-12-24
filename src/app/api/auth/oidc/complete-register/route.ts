@@ -161,27 +161,6 @@ export async function POST(request: NextRequest) {
       // 使用新版本创建用户（带SHA256加密和OIDC绑定）
       await db.createUserV2(username, randomPassword, 'user', defaultTags, oidcSession.sub);
 
-      // 同时在旧版本存储中创建（保持兼容性）
-      await db.registerUser(username, randomPassword);
-
-      // 将用户添加到配置中（保持兼容性）
-      const newUser: any = {
-        username: username,
-        role: 'user',
-        banned: false,
-        oidcSub: oidcSession.sub, // 保存OIDC标识符
-      };
-
-      // 如果配置了默认用户组,分配给新用户
-      if (defaultTags) {
-        newUser.tags = defaultTags;
-      }
-
-      config.UserConfig.Users.push(newUser);
-
-      // 保存配置
-      await db.saveAdminConfig(config);
-
       // 设置认证cookie
       const response = NextResponse.json({ ok: true, message: '注册成功' });
       const cookieValue = await generateAuthCookie(username, 'user');
