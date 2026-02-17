@@ -6,6 +6,16 @@ DIR="/opt/moontvplus"
 
 echo ">>> Installing MoonTVPlus..."
 
+# Cleanup old containers/ports
+echo "Cleaning up old containers..."
+docker stop moontv 2>/dev/null || true
+docker rm moontv 2>/dev/null || true
+docker compose -f $DIR/docker-compose.yml down 2>/dev/null || true
+# Kill process on 8073 just in case
+if command -v fuser &> /dev/null; then
+    fuser -k 8073/tcp 2>/dev/null || true
+fi
+
 # 1. Check Docker
 if ! command -v docker &> /dev/null; then
     echo "Installing Docker..."
